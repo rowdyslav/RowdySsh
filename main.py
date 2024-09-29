@@ -1,11 +1,14 @@
 import asyncio
 
+import bcrypt
 import fabric
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command, CommandStart
 from aiogram.filters.command import CommandObject
 from aiogram.types import Message
 from environs import Env
+
+from database.models import User
 
 dp = Dispatcher()
 
@@ -24,16 +27,33 @@ async def start(message: Message) -> None:
 
 @dp.message(Command("connect"))
 async def connect(message: Message, command: CommandObject):
-    args = command.args
-    if not args:
-        await message.answer("Формат: /connect <айпи> <юзер> <порт> <пароль>")
+    tg_user = message.from_user
+    if not tg_user:
         return
-    host, user, port, password = args.split()
-    result = fabric.Connection(
-        host, user, port, connect_kwargs={"password": password}
-    ).run("uname -s", hide=True)
+    db_user = await User.get_or_create(tg_user.id, tg_user.username)
 
+    host, ssh_password = db_user.host, db_user.ssh_password
+    if not all((host, ssh_password)):
+        args = command.args
+        if not args:
+            await message.answer("Формат: /connect <айпи> <юзер> <порт> <пароль>")
+            return
+        host, ssh_user, port, ssh_password = args.split()
+        await db_user.update(
+            host=host, ssh_user=ssh_user, port=int(port), ssh_password=ssh_password
+        )
+    ssh_user = db_user.ssh_user if db_user.ssh_user else "root"
+    port = db_user.port if db_user.port else 22
+
+    assert host
+    assert ssh_password
+
+    await message.answer("Подключение к машине...")
+    result = fabric.Connection(
+        host, ssh_user, port, connect_kwargs={"password": ssh_password}
+    ).run("uname -s", hide=True)
     msg = "Ran {0.command!r} on {0.connection.host}, got stdout:\n{0.stdout}"
+
     await message.answer(msg.format(result))
 
 
