@@ -1,12 +1,12 @@
 import asyncio
 
-import bcrypt
 import fabric
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command, CommandStart
 from aiogram.filters.command import CommandObject
 from aiogram.types import Message
 from environs import Env
+from icecream import ic
 from paramiko.ssh_exception import SSHException
 
 from database.models import User
@@ -50,12 +50,11 @@ async def connect(message: Message, command: CommandObject):
     assert ssh_password
 
     await message.answer("Подключение к машине...")
+    conn = fabric.Connection(
+        host, ssh_user, port, connect_kwargs={"password": ssh_password}
+    )
     try:
-        result = fabric.Connection(
-            host, ssh_user, port, connect_kwargs={"password": ssh_password}
-        ).run("uname -s", hide=True)
-        msg = "Ran {0.command!r} on {0.connection.host}, got stdout:\n{0.stdout}"
-        await message.answer(msg.format(result))
+        result = conn.run("uname -s", hide=True)
     except SSHException as e:
         match str(e):
             case "Error reading SSH protocol banner":
@@ -65,6 +64,9 @@ async def connect(message: Message, command: CommandObject):
             case _:
                 await message.answer("Неизвестная ошибка SSHException!")
                 raise e
+        return
+    msg = "Ran {0.command!r} on {0.connection.host}, got stdout:\n{0.stdout}"
+    await message.answer(msg.format(result))
 
 
 async def main():
