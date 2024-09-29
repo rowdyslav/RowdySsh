@@ -1,3 +1,5 @@
+from typing import Self
+
 from pydantic import Field
 
 from .base import Base
@@ -12,7 +14,7 @@ class User(Base):
     ssh_password: str | None = Field(default=None)
 
     @classmethod
-    async def get_or_create(cls, id: int, username: str | None):
+    async def get_or_create(cls, id: int, username: str | None) -> Self:
         user = await cls._get(id)
         user = (
             await cls._update(user.id, username=username)
