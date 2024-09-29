@@ -7,6 +7,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.filters.command import CommandObject
 from aiogram.types import Message
 from environs import Env
+from paramiko.ssh_exception import SSHException
 
 from database.models import User
 
@@ -30,7 +31,7 @@ async def connect(message: Message, command: CommandObject):
     tg_user = message.from_user
     if not tg_user:
         return
-    db_user = await User.get_or_create(tg_user.id, tg_user.username)
+    db_user = await User.get_or_create(tg_user)
 
     host, ssh_password = db_user.host, db_user.ssh_password
     if not all((host, ssh_password)):
@@ -49,12 +50,21 @@ async def connect(message: Message, command: CommandObject):
     assert ssh_password
 
     await message.answer("Подключение к машине...")
-    result = fabric.Connection(
-        host, ssh_user, port, connect_kwargs={"password": ssh_password}
-    ).run("uname -s", hide=True)
-    msg = "Ran {0.command!r} on {0.connection.host}, got stdout:\n{0.stdout}"
-
-    await message.answer(msg.format(result))
+    try:
+        result = fabric.Connection(
+            host, ssh_user, port, connect_kwargs={"password": ssh_password}
+        ).run("uname -s", hide=True)
+        msg = "Ran {0.command!r} on {0.connection.host}, got stdout:\n{0.stdout}"
+        await message.answer(msg.format(result))
+    except SSHException as e:
+        match str(e):
+            case "Error reading SSH protocol banner":
+                await message.answer(
+                    "Ошибка SSH protocol banner! Скорее всего машина отключена"
+                )
+            case _:
+                await message.answer("Неизвестная ошибка SSHException!")
+                raise e
 
 
 async def main():

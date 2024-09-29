@@ -1,5 +1,7 @@
 from typing import Self
 
+from aiogram.types import User as TgUser
+from icecream import ic
 from pydantic import Field
 
 from .base import Base
@@ -14,13 +16,12 @@ class User(Base):
     ssh_password: str | None = Field(default=None)
 
     @classmethod
-    async def get_or_create(cls, id: int, username: str | None) -> Self:
-        user = await cls._get(id)
-        user = (
-            await cls._update(user.id, username=username)
-            if user
-            else await cls._create(_id=id, username=username)
-        )
+    async def get_or_create(cls, tg_user: TgUser) -> Self:
+        user = await cls._get(tg_user.id)
+        if user:
+            await cls._update(user.id, username=tg_user.username)
+        else:
+            await cls._create(_id=tg_user.id, username=tg_user.username)
         assert user
         return user
 
