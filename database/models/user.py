@@ -1,7 +1,6 @@
 from typing import Self
 
 from aiogram.types import User as TgUser
-from icecream import ic
 from pydantic import Field
 
 from ._base import Base
