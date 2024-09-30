@@ -8,6 +8,8 @@ from .base import Base
 
 
 class User(Base):
+    """Модель пользователя бота"""
+
     id: int = Field(alias="_id")
     username: str | None = Field(default=None)
     host: str | None = Field(default=None)
