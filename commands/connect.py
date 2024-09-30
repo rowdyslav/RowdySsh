@@ -1,6 +1,7 @@
 import fabric
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
+from icecream import ic
 from paramiko.ssh_exception import SSHException
 
 from database.models import User
@@ -31,20 +32,25 @@ async def connect(message: Message, command: CommandObject):
     assert ssh_password
 
     await message.answer("Подключение к машине...")
+    conn = fabric.Connection(
+        host,
+        ssh_user,
+        port,
+        connect_kwargs={"password": ssh_password, "banner_timeout": 60},
+    )
+
     try:
-        conn = fabric.Connection(
-            host, ssh_user, port, connect_kwargs={"password": ssh_password}
-        )
-        result = conn.run("uname -s", hide=True)
-    except TimeoutError as e:
-        match str(e):
-            case "Error reading SSH protocol banner":
-                await message.answer(
-                    "Ошибка SSH protocol banner! Скорее всего машина отключена"
-                )
-            case _:
-                await message.answer("Неизвестная ошибка SSHException!")
-                raise e
+        conn.open()
+    except (SSHException, TimeoutError, ConnectionResetError) as e:
+        if "Error reading SSH protocol banner" in str(e):
+            await message.answer(
+                "Ошибка SSH protocol banner! Скорее всего машина отключена"
+            )
+        else:
+            await message.answer("Неизвестная ошибка подключения!")
+            ic(e)
         return
+
+    result = conn.run("uname -s", hide=True)
     msg = "Ran {0.command!r} on {0.connection.host}, got stdout:\n{0.stdout}"
     await message.answer(msg.format(result))
