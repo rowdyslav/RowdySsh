@@ -1,13 +1,11 @@
 import fabric
-from aiogram import Router
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 from icecream import ic
 from paramiko.ssh_exception import SSHException
 
 from database.models import User
-
-router = Router()
+from routers import command_router as router
 
 
 @router.message(Command("connect"))
