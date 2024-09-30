@@ -4,7 +4,7 @@ from aiogram.types import User as TgUser
 from icecream import ic
 from pydantic import Field
 
-from .base import Base
+from ._base import Base
 
 
 class User(Base):
