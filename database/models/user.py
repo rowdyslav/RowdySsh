@@ -19,11 +19,10 @@ class User(Base):
     @classmethod
     async def get_or_create(cls, tg_user: TgUser) -> Self:
         user = await cls._get(tg_user.id)
-        if user:
+        if user and user.username != tg_user.username:
             await cls._update(user.id, username=tg_user.username)
         else:
-            await cls._create(_id=tg_user.id, username=tg_user.username)
-        assert user
+            user = await cls._create(_id=tg_user.id, username=tg_user.username)
         return user
 
     async def update(self, **kwargs: str | int) -> None:
