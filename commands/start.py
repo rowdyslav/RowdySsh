@@ -1,7 +1,8 @@
+from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 
-from routers import commands_router as router
+router = Router()
 
 
 @router.message(CommandStart())
