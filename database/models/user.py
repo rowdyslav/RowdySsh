@@ -21,7 +21,7 @@ class User(Base):
         user = await cls._get(tg_user.id)
         if user and user.username != tg_user.username:
             await cls._update(user.id, username=tg_user.username)
-        else:
+        elif not user:
             user = await cls._create(_id=tg_user.id, username=tg_user.username)
         return user
 
